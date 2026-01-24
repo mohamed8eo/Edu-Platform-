@@ -18,6 +18,7 @@ CREATE TABLE "categories" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"slug" varchar(255) NOT NULL,
+	"image" varchar(500),
 	"description" text,
 	"parent_id" uuid,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -40,7 +41,7 @@ CREATE TABLE "courses" (
 	"language" varchar(50),
 	"youtube_playlist_id" varchar(100),
 	"youtube_video_id" varchar(100),
-	"is_published" boolean DEFAULT false,
+	"is_published" boolean DEFAULT true,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "courses_slug_unique" UNIQUE("slug")
 );
@@ -50,6 +51,7 @@ CREATE TABLE "lessons" (
 	"course_id" uuid NOT NULL,
 	"title" varchar(255) NOT NULL,
 	"youtube_video_id" varchar(100) NOT NULL,
+	"thumbnail" varchar(500),
 	"position" varchar(50),
 	"duration" varchar(50),
 	"created_at" timestamp DEFAULT now() NOT NULL
