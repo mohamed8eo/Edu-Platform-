@@ -5,7 +5,7 @@ import * as schema from '../db/schema';
 import { lastLoginMethod } from 'better-auth/plugins';
 import { emailOTP } from 'better-auth/plugins';
 import { bearer } from 'better-auth/plugins';
-
+import { admin } from 'better-auth/plugins';
 const isDev = 'Development';
 async function sendOTPEmail(email: string, otp: string, type: string) {
   // Development: Log to console
@@ -51,13 +51,6 @@ async function sendOTPEmail(email: string, otp: string, type: string) {
   );
 }
 
-if (!process.env.GOOGLE_CLIENT_ID) {
-  throw new Error('Missing GOOGLE_CLIENT_ID environment variable');
-}
-
-if (!process.env.GOOGLE_CLIENT_SECRET) {
-  throw new Error('Missing GOOGLE_CLIENT_SECRET environment variable');
-}
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     schema,
@@ -67,10 +60,11 @@ export const auth = betterAuth({
     enabled: true,
   },
   plugins: [
-    bearer(), // Enable Bearer token authentication
+    bearer(),
     lastLoginMethod({
       storeInDatabase: true,
     }),
+    admin(),
 
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {

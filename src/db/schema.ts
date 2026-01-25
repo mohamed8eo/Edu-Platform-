@@ -1,4 +1,5 @@
 import { relations } from 'drizzle-orm';
+import { integer } from 'drizzle-orm/pg-core';
 import { primaryKey } from 'drizzle-orm/pg-core';
 import {
   pgTable,
@@ -22,7 +23,10 @@ export const user = pgTable('user', {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
   lastLoginMethod: text('last_login_method'),
-  role: text('role').default('user').notNull(),
+  role: text('role'),
+  banned: boolean('banned').default(false),
+  banReason: text('ban_reason'),
+  banExpires: timestamp('ban_expires'),
 });
 
 export const session = pgTable(
@@ -40,6 +44,7 @@ export const session = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
+    impersonatedBy: text('impersonated_by'),
   },
   (table) => [index('session_userId_idx').on(table.userId)],
 );
@@ -90,6 +95,8 @@ export const categories = pgTable('categories', {
   name: varchar('name', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 255 }).notNull().unique(), // URL-friendly
 
+  image: varchar('image', { length: 500 }),
+
   description: text('description'),
 
   // parent category for nested structure
@@ -115,7 +122,7 @@ export const courses = pgTable('courses', {
   youtubePlaylistId: varchar('youtube_playlist_id', { length: 100 }),
   youtubeVideoId: varchar('youtube_video_id', { length: 100 }),
 
-  isPublished: boolean('is_published').default(false),
+  isPublished: boolean('is_published').default(true),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -129,6 +136,7 @@ export const lessons = pgTable('lessons', {
 
   title: varchar('title', { length: 255 }).notNull(),
   youtubeVideoId: varchar('youtube_video_id', { length: 100 }).notNull(),
+  thumbnail: varchar('thumbnail', { length: 500 }),
 
   position: varchar('position', { length: 50 }), // lesson order in playlist
   duration: varchar('duration', { length: 50 }), // optional, could be seconds
@@ -152,6 +160,18 @@ export const courseCategories = pgTable(
     pk: primaryKey({ columns: [table.courseId, table.categoryId] }),
   }),
 );
+
+export const trafficLogs = pgTable('traffic_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  method: text('method').notNull(),
+  path: text('path').notNull(),
+  statusCode: integer('status_code').notNull(),
+  durationMs: integer('duration_ms').notNull(),
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  userId: text('user_id'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
 
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),

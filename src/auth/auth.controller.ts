@@ -18,8 +18,8 @@ export class AuthController {
 
   @Post('sign-in')
   @AllowAnonymous()
-  async SignIn(@Body() signIn: SignInDto) {
-    return await this.authService.SignIn(signIn);
+  async SignIn(@Body() signIn: SignInDto, @Req() req: Request) {
+    return await this.authService.SignIn(signIn, req);
   }
 
   @Post('sign-out')
@@ -31,11 +31,11 @@ export class AuthController {
 
   @Post('send-otp')
   @AllowAnonymous()
-  async sendOTP(@Body() dto: SendOtpDto) {
-    await this.authService.sendOTP(dto.email);
+  async sendOTP(@Body() sendOtp: SendOtpDto) {
+    await this.authService.sendOTP(sendOtp);
 
     return {
-      message: 'If the email exists, a verification code has been sent.',
+      message: 'verification code has been sent.',
     };
   }
 

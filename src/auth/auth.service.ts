@@ -1,45 +1,103 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import {
+  Injectable,
+  UnauthorizedException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { SignUpDto } from './dto/SignUp.dto';
 import { auth } from '../lib/auth';
 import { SignInDto } from './dto/SignIn.dto';
-import { VerifyOtpDto } from './dto/sendOTP.dto';
+import { SendOtpDto, VerifyOtpDto } from './dto/sendOTP.dto';
 import type { Request } from 'express';
 import { db } from '../db';
-import { session } from '../db/schema';
+import { session, user } from '../db/schema';
 import { eq, inArray } from 'drizzle-orm';
-
+import { APIError } from 'better-auth';
+import cloudinary from '../../cloudinary.config';
 @Injectable()
 export class AuthService {
-  async SignUp(signUp: SignUpDto) {
-    const { email, password, name } = signUp;
+  async SignUp(signUp: SignUpDto): Promise<any> {
+    try {
+      const { email, password, name } = signUp;
 
-    const result = await auth.api.signUpEmail({
-      body: {
-        email,
-        password,
-        name,
-      },
-    });
-    return result;
+      const result = await auth.api.signUpEmail({
+        body: {
+          email,
+          password,
+          name,
+        },
+      });
+
+      if (!result?.user) return result;
+
+      try {
+        const dicebearUrl = `https://api.dicebear.com/9.x/pixel-art/svg?seed=${encodeURIComponent(email)}`;
+        const svgData = await fetch(dicebearUrl).then((res) => res.text());
+
+        const uploaded = await cloudinary.uploader.upload(
+          `data:image/svg+xml;base64,${Buffer.from(svgData).toString('base64')}`,
+          {
+            folder: 'avatars', // optional folder
+            public_id: result.user.id, // use user ID for easy retrieval
+            overwrite: true,
+            resource_type: 'image', // necessary for SVG
+          },
+        );
+
+        const avatarUrl = uploaded.secure_url;
+
+        await db
+          .update(user)
+          .set({
+            image: avatarUrl, // store Cloudinary URL
+          })
+          .where(eq(user.id, result.user.id));
+      } catch (error) {
+        console.error('Avatar upload failed:', error);
+      }
+
+      return {
+        message: 'Sign up successful.',
+      };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw new UnauthorizedException(error.message);
+      }
+      console.error('SignUp Error:', error);
+      throw new InternalServerErrorException(
+        'An error occurred during sign up',
+      );
+    }
   }
 
-  async SignIn(signIn: SignInDto) {
-    const { email, password } = signIn;
+  async SignIn(signIn: SignInDto, req: Request): Promise<any> {
+    try {
+      const { email, password } = signIn;
 
-    const result = await auth.api.signInEmail({
-      body: {
-        email,
-        password,
-      },
-    });
+      const result = await auth.api.signInEmail({
+        body: {
+          email,
+          password,
+        },
+        headers: req.headers as any,
+      });
 
-    // Single session mode: Invalidate all other sessions for this user
-    // This ensures only one active session per user (most secure)
-    if (result.user?.id) {
-      await this.invalidateOtherSessions(result.user.id, result.token);
+      // Single session mode: Invalidate all other sessions for this user
+      // This ensures only one active session per user (most secure)
+      if (result.user?.id) {
+        await this.invalidateOtherSessions(result.user.id, result.token);
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw new UnauthorizedException(error.message);
+      }
+      console.error('SignIn Error:', error);
+      throw new InternalServerErrorException(
+        'An error occurred during sign in',
+      );
     }
-
-    return result;
   }
 
   private async invalidateOtherSessions(userId: string, currentToken: string) {
@@ -105,10 +163,11 @@ export class AuthService {
     }
   }
 
-  async sendOTP(email: string) {
-    await auth.api.sendVerificationEmail({
+  async sendOTP(sendOtp: SendOtpDto) {
+    await auth.api.sendVerificationOTP({
       body: {
-        email,
+        email: sendOtp.email,
+        type: sendOtp.type,
       },
     });
   }
@@ -116,12 +175,12 @@ export class AuthService {
   async verifyOTP(verifyOTP: VerifyOtpDto) {
     const { email, otp } = verifyOTP;
 
-    const result = await auth.api.verifyEmailOTP({
+    await auth.api.verifyEmailOTP({
       body: {
         email,
         otp,
       },
     });
-    return { message: 'Email verified successfully', result };
+    return { message: 'Email verified successfully' };
   }
 }
