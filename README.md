@@ -1,98 +1,185 @@
+# Edu-Platform - Backend
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This project is the backend for a robust and scalable educational platform, built with the [NestJS](https://nestjs.com/) framework. It provides a comprehensive set of features for managing users, courses, categories, and tracking user progress. The API is designed to be secure, efficient, and easy to use, with features like authentication, authorization, and detailed traffic logging.
 
-## Project setup
+## Core Features
 
-```bash
-$ yarn install
+- **User Management**: Secure user authentication and management, including sign-up, sign-in, and profile updates, with avatar generation via DiceBear and storage on Cloudinary.
+- **Course & Lesson Management**: Create, update, and delete courses and lessons, with support for YouTube playlists and videos (fetching details and duration via YouTube Data API).
+- **Category Management**: Organize courses into a hierarchical structure of categories, with CRUD operations and the ability to fetch courses by category.
+- **Progress Tracking**: Users can mark lessons as completed, and the system automatically tracks course progress and status.
+- **Admin Dashboard**: Endpoints for administrators to monitor daily traffic, top visited endpoints, slowest endpoints, error statistics, and active users. Admins can also ban/unban users.
+- **Secure API**: Role-based access control to protect routes and ensure data privacy, utilizing `better-auth` for robust authentication.
+- **Traffic Logging**: Detailed logging of API requests, including method, path, status code, duration, IP, user agent, and user ID.
+
+---
+
+## Tech Stack
+
+- **Framework**: [NestJS](https://nestjs.com/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/)
+- **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
+- **Authentication**: [Better-Auth](https://better-auth.com/)
+- **API Documentation**: [Swagger](https://swagger.io/)
+- **Media Management**: [Cloudinary](https://cloudinary.com/)
+- **Email Services**: [Resend](https://resend.com/)
+- **Avatar Generation**: [DiceBear](https://www.dicebear.com/)
+- **Video Data**: [YouTube Data API](https://developers.google.com/youtube/v3)
+- **Utilities**: `slugify`, `class-validator`, `class-transformer`, `rxjs`
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/en/) (v16 or higher recommended)
+- [Yarn](https://yarnpkg.com/) (or npm)
+- [PostgreSQL](https://www.postgresql.org/download/)
+- A [Google Cloud Project](https://cloud.google.com/docs/get-started) with the YouTube Data API enabled to fetch video/playlist information.
+- A [Cloudinary account](https://cloudinary.com/console) for image storage.
+- A [Resend account](https://resend.com/signup) for email services.
+
+### Installation and Setup
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/your-username/Edu-Platform-.git
+    cd Edu-Platform-
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    yarn install
+    ```
+
+3.  **Set up environment variables:**
+
+    Create a `.env` file in the root directory and add the following variables:
+
+    ```env
+    DATABASE_URL="postgresql://user:password@host:port/database"
+    YT_API_KEY="your_youtube_data_api_key"
+    RESEND_API_KEY="your_resend_api_key"
+    RESEND_FROM_EMAIL="noreply@yourdomain.com"
+    CLOUDINARY_URL="cloudinary://api_key:api_secret@cloud_name"
+    DEFAULT_BAN_DURATION="86400" # Default ban duration in seconds (e.g., 1 day)
+    PORT=3000 # Optional: Port for the application to listen on
+    ```
+
+4.  **Run database migrations:**
+
+    ```bash
+    yarn drizzle-kit generate
+    ```
+
+    _Note: You might need to run `yarn drizzle-kit push:pg` or similar commands depending on your Drizzle setup to apply migrations._
+
+### Running the Application
+
+-   **Development mode (with watch):**
+
+    ```bash
+    yarn start:dev
+    ```
+
+-   **Production mode:**
+
+    ```bash
+    yarn build
+    yarn start:prod
+    ```
+
+### API Documentation
+
+API documentation is generated using **Swagger** and is available at the `/api` endpoint when the application is running.
+
+-   **Base URL**: `http://localhost:3000`
+-   **Swagger UI**: `http://localhost:3000/api`
+
+---
+
+## Testing
+
+-   **Run unit tests:**
+
+    ```bash
+    yarn test
+    ```
+
+-   **Run end-to-end (e2e) tests:**
+
+    ```bash
+    yarn test:e2e
+    ```
+
+-   **Generate a test coverage report:**
+    ```bash
+    yarn test:cov
+    ```
+
+## Project Structure
+
+The project follows a modular structure typical for NestJS applications:
+
 ```
+Edu-Platform-/
+├── src/
+│   ├── app.module.ts          # Main application module
+│   ├── main.ts                # Application entry point
+│   ├── auth/                  # Authentication module (sign-up, sign-in, OTP, password reset)
+│   │   ├── auth.controller.ts
+│   │   ├── auth.module.ts
+│   │   ├── auth.service.ts
+│   │   └── dto/
+│   ├── categorie/             # Course category management module
+│   │   ├── categorie.controller.ts
+│   │   ├── categorie.module.ts
+│   │   ├── categorie.service.ts
+│   │   └── dto/
+│   ├── course/                # Course and lesson management module
+│   │   ├── course.controller.ts
+│   │   ├── course.module.ts
+│   │   ├── course.service.ts
+│   │   └── dto/
+│   ├── db/                    # Database connection and Drizzle schema
+│   │   ├── index.ts
+│   │   └── schema.ts
+│   ├── lib/                   # Shared libraries, e.g., BetterAuth instance
+│   │   └── auth.ts
+│   ├── traffic/               # API traffic logging and admin monitoring
+│   │   ├── traffic.controller.ts
+│   │   ├── traffic.middleware.ts
+│   │   ├── traffic.module.ts
+│   │   ├── traffic.service.ts
+│   │   └── dto/
+│   └── user/                  # User profile management and course enrollment
+│       ├── user.controller.ts
+│       ├── user.module.ts
+│       ├── user.service.ts
+│       └── dto/
+├── .env.example               # Example environment variables (create .env from this)
+├── cloudinary.config.ts       # Cloudinary configuration
+├── drizzle.config.ts          # Drizzle ORM configuration
+├── nest-cli.json              # NestJS CLI configuration
+├── package.json               # Project dependencies and scripts
+├── tsconfig.json              # TypeScript configuration
+└── yarn.lock                  # Yarn lock file
 
-## Compile and run the project
-
-```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
 ```
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+The project is configured for deployment with standard Node.js deployment practices. For NestJS specific deployment considerations, refer to the [NestJS Deployment Guide](https://docs.nestjs.com/deployment).
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
