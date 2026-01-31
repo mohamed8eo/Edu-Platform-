@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response } from 'express';
@@ -15,9 +16,17 @@ export class TrafficMiddleware implements NestMiddleware {
     }
 
     const start = Date.now();
-    const session = await auth.api.getSession({
-      headers: req.headers as any,
-    });
+    let session: any = null;
+
+    try {
+      session = await auth.api.getSession({
+        headers: req.headers as any,
+      });
+    } catch (err) {
+      // auth failed → continue without user
+      console.log(err);
+      session = null;
+    }
 
     res.on('finish', () => {
       const duration = Date.now() - start;
