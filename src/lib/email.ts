@@ -1,4 +1,11 @@
 export async function sendOTPEmail(email: string, otp: string, type: string) {
+  console.log('[OTP] function called', {
+    email,
+    type,
+    nodeEnv: process.env.NODE_ENV,
+    hasResendKey: !!process.env.RESEND_API_KEY,
+  });
+
   const isProd = process.env.NODE_ENV === 'production';
 
   // =========================
@@ -8,19 +15,23 @@ export async function sendOTPEmail(email: string, otp: string, type: string) {
     console.log(`\n📧 [DEV OTP] ${type} → ${email}`);
     console.log(`🔑 OTP Code: ${otp}`);
     console.log(`⏰ Valid for 5 minutes\n`);
-    // return;
-  }
-
-  // =========================
-  // Production safety checks
-  // =========================
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[EMAIL] RESEND_API_KEY is missing');
     return;
   }
 
+  // =========================
+  // Production checks
+  // =========================
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[EMAIL] RESEND_API_KEY is missing');
+    return;
+  }
+
+  console.log('[PROD] importing resend');
+
   const { Resend } = await import('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
+
+  console.log('[PROD] resend client created');
 
   const subject =
     type === 'sign-in'
@@ -30,30 +41,27 @@ export async function sendOTPEmail(email: string, otp: string, type: string) {
         : 'Reset your password';
 
   const html = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6">
-      <h2>Your verification code</h2>
-      <p>Use the code below to continue:</p>
-      <p style="
-        font-size: 28px;
-        font-weight: bold;
-        letter-spacing: 6px;
-        margin: 16px 0;
-      ">
-        ${otp}
-      </p>
-      <p>This code will expire in <strong>5 minutes</strong>.</p>
-      <p>If you didn’t request this code, you can safely ignore this email.</p>
-    </div>
+    <h2>OTP Test Email</h2>
+    <p><strong>${otp}</strong></p>
   `;
 
   try {
-    await resend.emails.send({
+    console.log('[PROD] sending email...');
+
+    const result = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to: email,
       subject,
       html,
     });
+
+    console.log('[PROD] email sent successfully', result);
+
+    // Keep process alive briefly (Fly.io safety)
+    await new Promise((r) => setTimeout(r, 200));
+
+    console.log('[PROD] send completed');
   } catch (error) {
-    console.error('[EMAIL FAILED]', error);
+    console.error('[PROD] email failed', error);
   }
 }
