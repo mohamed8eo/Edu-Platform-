@@ -8,7 +8,7 @@ export async function sendOTPEmail(email: string, otp: string, type: string) {
     console.log(`\n📧 [DEV OTP] ${type} → ${email}`);
     console.log(`🔑 OTP Code: ${otp}`);
     console.log(`⏰ Valid for 5 minutes\n`);
-    return;
+    // return;
   }
 
   // =========================
