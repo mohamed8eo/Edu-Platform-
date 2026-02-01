@@ -65,6 +65,8 @@ export class AuthService {
         message: 'Sign up successful.',
         token: result.token,
         userId: result.user.id,
+        userRole: result.user.role,
+        userLastLoginMethod: result.user.lastLoginMethod,
       };
     } catch (error) {
       if (error instanceof APIError) {
@@ -107,6 +109,7 @@ export class AuthService {
         token: result.token,
         userId: user.id,
         userRole: user.role,
+        userLastLoginMethod: user.lastLoginMethod,
       };
     } catch (error) {
       if (error instanceof APIError) {
