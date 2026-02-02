@@ -6,7 +6,12 @@ async function bootstrap() {
   console.log('DATABASE_URL from env:', process.env.DATABASE_URL);
   const app = await NestFactory.create(AppModule, {
     bodyParser: false, // Required for Better Auth
-    cors: true,
+    cors: {
+      origin: ['http://localhost:3000', 'http://localhost:8080'],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    },
   });
   const config = new DocumentBuilder()
     .setTitle('Edu Learning Platform')

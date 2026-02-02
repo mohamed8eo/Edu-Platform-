@@ -9,6 +9,7 @@ import type { Request } from 'express';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/password.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { SocialLoginDto } from './dto/social-login.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -29,6 +30,13 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'User signed in successfully.' })
   async SignIn(@Body() signIn: SignInDto, @Req() req: Request) {
     return await this.authService.SignIn(signIn, req);
+  }
+
+  @Post('sign-in-social')
+  @AllowAnonymous()
+  @ApiOperation({ summary: 'User sign in with social' })
+  async signInSocial(@Body() socialLoginDto: SocialLoginDto) {
+    return await this.authService.SignInSocial(socialLoginDto);
   }
 
   @Post('sign-out')

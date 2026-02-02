@@ -18,6 +18,7 @@ import { APIError } from 'better-auth';
 import cloudinary from '../../cloudinary.config';
 import { UserService } from '../user/user.service';
 import { ResetPasswordDto } from './dto/password.dto';
+import { SocialLoginDto } from './dto/social-login.dto';
 @Injectable()
 export class AuthService {
   constructor(private readonly userService: UserService) {}
@@ -123,6 +124,33 @@ export class AuthService {
       console.error('SignIn Error:', error);
       throw new InternalServerErrorException(
         'An error occurred during sign in',
+      );
+    }
+  }
+
+  async SignInSocial(socialLoginDto: SocialLoginDto) {
+    try {
+      console.log(
+        'Social login request for provider:',
+        socialLoginDto.provider,
+      );
+
+      const result = await auth.api.signInSocial({
+        body: {
+          provider: socialLoginDto.provider,
+          callbackURL: 'http://localhost:3000/home',
+        },
+      });
+
+      console.log('OAuth URL generated:', result.url);
+      return result;
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw new UnauthorizedException(error.message);
+      }
+      console.error('SignInSocial Error:', error);
+      throw new InternalServerErrorException(
+        'An error occurred during social sign in',
       );
     }
   }
