@@ -24,6 +24,12 @@ export const auth = betterAuth({
   // account: {
   //   skipStateCookieCheck: true,
   // },
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: 'none',
+      secure: true,
+    },
+  },
   plugins: [
     lastLoginMethod({
       storeInDatabase: true,
