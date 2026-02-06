@@ -166,6 +166,4 @@ export class UserService {
       message: 'Course Subscribed',
     };
   }
-
-
 }

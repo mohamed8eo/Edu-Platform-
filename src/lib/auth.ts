@@ -21,9 +21,9 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  account: {
-    skipStateCookieCheck: true,
-  },
+  // account: {
+  //   skipStateCookieCheck: true,
+  // },
   plugins: [
     lastLoginMethod({
       storeInDatabase: true,
