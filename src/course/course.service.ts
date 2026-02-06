@@ -8,6 +8,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import slugify from 'slugify';
@@ -19,7 +20,7 @@ import {
   userCourses,
   lessonProgress,
 } from '../db/schema';
-import { eq, or, ilike, and, sql } from 'drizzle-orm';
+import { eq, or, ilike, and, sql, getTableColumns } from 'drizzle-orm';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 
@@ -49,11 +50,9 @@ export class CourseService {
       thumbnail?: string;
     }[] = [];
 
-    let candidateId = dto.youtubePlaylistId || dto.youtubeVideoId;
-    if (!candidateId && dto.youtubeUrl) {
-      const parsed = this.parseYoutubeUrl(dto.youtubeUrl);
-      if (parsed) candidateId = parsed.id;
-    }
+    const parsed = this.parseYoutubeUrl(dto.youtubePlaylistURL || '');
+    let candidateId = parsed?.id;
+    console.log(candidateId);
 
     if (candidateId) {
       const playlistVideos = await this.fetchPlaylistVideos(candidateId);
@@ -155,8 +154,8 @@ export class CourseService {
   }
 
   async deleteCourse(slug: string) {
-    await this.getCourse(slug);
-
+    const course = await this.getCourse(slug);
+    if (!course) throw new NotFoundException('Course not found');
     await db.delete(courses).where(eq(courses.slug, slug));
 
     return {
@@ -199,6 +198,43 @@ export class CourseService {
     return {
       message: 'Course found',
       course: courseInfo[0],
+    };
+  }
+
+  async getAllcourses() {
+    const coursesInfo = await db
+      .select({
+        ...getTableColumns(courses),
+        totalSeconds: sql<number>`
+        COALESCE(
+          SUM(
+            (SPLIT_PART(${lessons.duration}, ':', 1)::integer * 60) +
+            COALESCE(SPLIT_PART(${lessons.duration}, ':', 2)::integer, 0)
+          ), 
+          0
+        )
+      `.as('totalSeconds'),
+      })
+      .from(courses)
+      .leftJoin(lessons, eq(lessons.courseId, courses.id))
+      .groupBy(courses.id);
+
+    if (coursesInfo.length === 0) {
+      throw new NotFoundException('Courses not found');
+    }
+
+    return {
+      message: 'Courses found',
+      courses: coursesInfo.map(({ totalSeconds, ...course }) => {
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        return {
+          ...course,
+          totalDuration: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`,
+        };
+      }),
     };
   }
 
@@ -450,5 +486,63 @@ export class CourseService {
         courseStatus: progress === 100 ? 'completed' : 'active',
       };
     });
+  }
+
+  async getProgressLessonsForUserInCourse(userId: string, slug: string) {
+    // Retrieve all progress lessons for the user in the course
+    const progressLessons = await db
+      .select(getTableColumns(lessonProgress))
+      .from(lessonProgress)
+      .innerJoin(lessons, eq(lessonProgress.lessonId, lessons.id))
+      .innerJoin(courses, eq(lessons.courseId, courses.id))
+      .where(and(eq(lessonProgress.userId, userId), eq(courses.slug, slug)));
+
+    if (progressLessons.length === 0) {
+      throw new NotFoundException(
+        'No progress lessons found for the user in the course',
+      );
+    }
+
+    return progressLessons;
+  }
+
+  //get Randown 4 courses
+  async getRandomCourses(limit: number) {
+    try {
+      const randomCourses = await db
+        .select({
+          ...getTableColumns(courses),
+          totalSeconds: sql<number>`
+          COALESCE(
+            SUM(
+              (SPLIT_PART(${lessons.duration}, ':', 1)::integer * 60) +
+              COALESCE(SPLIT_PART(${lessons.duration}, ':', 2)::integer, 0)
+            ), 
+            0
+          )
+        `.as('totalSeconds'),
+        })
+        .from(courses)
+        .leftJoin(lessons, eq(lessons.courseId, courses.id))
+        .groupBy(courses.id)
+        .orderBy(sql`random()`)
+        .limit(limit);
+
+      if (randomCourses === null || randomCourses.length === 0) {
+        throw new NotFoundException('No courses found');
+      }
+
+      return randomCourses;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      } else if (error instanceof TypeError) {
+        throw new InternalServerErrorException('Null pointer reference', error);
+      } else if (error instanceof Error) {
+        throw new InternalServerErrorException('Unhandled exception', error);
+      } else {
+        throw new InternalServerErrorException('Unknown error', error);
+      }
+    }
   }
 }

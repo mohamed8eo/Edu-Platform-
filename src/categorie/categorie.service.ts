@@ -196,13 +196,37 @@ export class CategorieService {
   async getTree() {
     const all = await db.select().from(categories);
 
-    type CategoryNode = (typeof all)[number] & { children: CategoryNode[] };
+    // Fetch all courses with their category relationships
+    const allCoursesWithCategories = await db
+      .select({
+        categoryId: courseCategories.categoryId, // Changed from courseId
+        course: {
+          id: courses.id,
+          title: courses.title,
+          slug: courses.slug,
+          thumbnail: courses.thumbnail,
+          level: courses.level,
+          language: courses.language,
+          isPublished: courses.isPublished,
+        },
+      })
+      .from(courseCategories)
+      .innerJoin(courses, eq(courseCategories.courseId, courses.id));
+
+    type CategoryNode = (typeof all)[number] & {
+      children: CategoryNode[];
+      courses: (typeof allCoursesWithCategories)[number]['course'][];
+    };
 
     const map = new Map<string, CategoryNode>();
     const roots: CategoryNode[] = [];
 
-    all.forEach((c) => map.set(c.id, { ...c, children: [] } as CategoryNode));
+    // Initialize all categories with empty children and courses arrays
+    all.forEach((c) =>
+      map.set(c.id, { ...c, children: [], courses: [] } as CategoryNode),
+    );
 
+    // Build the category tree
     all.forEach((c) => {
       const node = map.get(c.id);
       if (!node) return;
@@ -214,6 +238,14 @@ export class CategorieService {
         }
       } else {
         roots.push(node);
+      }
+    });
+
+    // Attach courses to their respective categories
+    allCoursesWithCategories.forEach((cc) => {
+      const categoryNode = map.get(cc.categoryId); // Changed from cc.courseId
+      if (categoryNode && cc.course) {
+        categoryNode.courses.push(cc.course);
       }
     });
 
@@ -250,5 +282,4 @@ export class CategorieService {
 
     return coursesList;
   }
-
 }

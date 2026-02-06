@@ -2,7 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TrafficLog } from './dto/trafficLog.dto';
 import { db } from '../db';
-import { eq, gte, isNotNull, sql } from 'drizzle-orm';
+import { eq, gte, sql } from 'drizzle-orm';
 import { trafficLogs, user } from '../db/schema';
 import { auth } from '../lib/auth';
 import type { Request } from 'express';
@@ -40,10 +40,13 @@ export class TrafficService {
     return db
       .select({
         path: trafficLogs.path,
+        method: trafficLogs.method,
+        statusCode: trafficLogs.statusCode,
         hits: sql<number>`COUNT(*)`,
+        averageDuration: sql<number>`AVG(${trafficLogs.durationMs})`,
       })
       .from(trafficLogs)
-      .groupBy(trafficLogs.path)
+      .groupBy(trafficLogs.path, trafficLogs.method, trafficLogs.statusCode)
       .orderBy(sql`COUNT(*) DESC`)
       .limit(10);
   }
@@ -52,37 +55,110 @@ export class TrafficService {
     return db
       .select({
         path: trafficLogs.path,
-        avgDuration: sql<number>`AVG(${trafficLogs.durationMs})`,
+        method: trafficLogs.method,
+        statusCode: trafficLogs.statusCode,
+        hits: sql<number>`COUNT(*)`,
+        averageDuration: sql<number>`AVG(${trafficLogs.durationMs})`,
       })
       .from(trafficLogs)
-      .groupBy(trafficLogs.path)
+      .groupBy(trafficLogs.path, trafficLogs.method, trafficLogs.statusCode)
+      .having(sql`COUNT(*) >= 10`)
       .orderBy(sql`AVG(${trafficLogs.durationMs}) DESC`)
       .limit(10);
   }
 
-  async getErrorStats() {
+  async getHttpStatusCodes() {
     return db
       .select({
         statusCode: trafficLogs.statusCode,
         count: sql<number>`COUNT(*)`,
       })
       .from(trafficLogs)
-      .where(gte(trafficLogs.statusCode, 400))
+      .where(gte(trafficLogs.statusCode, 200))
       .groupBy(trafficLogs.statusCode)
-      .orderBy(trafficLogs.statusCode);
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
   }
 
-  async getActiveUsers() {
-    const result = await db
-      .select({
-        userId: trafficLogs.userId,
-      })
-      .from(trafficLogs)
-      .where(isNotNull(trafficLogs.userId))
-      .groupBy(trafficLogs.userId);
+  // async getAverageResponseTime() {
+  //   return db
+  //     .select({
+  //       averageResponseTime: sql<number>`AVG(${trafficLogs.durationMs})`,
+  //     })
+  //     .from(trafficLogs);
+  // }
 
-    // Returns array of { userId: string }
-    return result.map((r) => r.userId);
+  // async getErrorRate() {
+  //   return db
+  //     .select({
+  //       totalRequests: sql<number>`COUNT(*)::int`,
+  //       errorRequests: sql<number>`
+  //       COUNT(*) FILTER (WHERE ${trafficLogs.statusCode} >= 400)::int
+  //     `,
+  //       errorRate: sql<number>`
+  //       ROUND(
+  //         (
+  //           COUNT(*) FILTER (WHERE ${trafficLogs.statusCode} >= 400)::decimal
+  //           / NULLIF(COUNT(*), 0)
+  //         ) * 100,
+  //         2
+  //       )
+  //     `,
+  //     })
+  //     .from(trafficLogs);
+  // }
+
+  async getDashboardStats(req: Request) {
+    // 1. Query all traffic metrics in one go
+    const trafficStats = await db
+      .select({
+        totalRequests: sql<number>`COUNT(*)::int`,
+        errorRequests: sql<number>`
+        COUNT(*) FILTER (WHERE ${trafficLogs.statusCode} >= 400)::int
+      `,
+        averageResponseTime: sql<number>`AVG(${trafficLogs.durationMs})`,
+        activeUsersCount: sql<number>`
+        COUNT(DISTINCT ${trafficLogs.userId})::int
+      `,
+      })
+      .from(trafficLogs);
+
+    // 2. Extract values from the result
+    const {
+      totalRequests,
+      errorRequests,
+      averageResponseTime,
+      activeUsersCount,
+    } = trafficStats[0] || {
+      totalRequests: 0,
+      errorRequests: 0,
+      averageResponseTime: 0,
+      activeUsersCount: 0,
+    };
+
+    // 3. Compute error rate
+    const errorRate =
+      totalRequests > 0
+        ? parseFloat(((errorRequests / totalRequests) * 100).toFixed(2))
+        : 0;
+
+    // 4. Get total users from Auth API
+    const totalUsersResponse = await auth.api.listUsers({
+      query: { limit: 1 }, // only need total count
+      headers: req.headers as any,
+    });
+
+    const totalUsers = totalUsersResponse.total ?? 0;
+
+    // 5. Return aggregated dashboard data
+    return {
+      totalRequests,
+      errorRequests,
+      errorRate, // in percentage
+      averageResponseTime, // in ms
+      activeUsers: activeUsersCount,
+      totalUsers,
+    };
   }
 
   async getUserInfo(userId: string) {

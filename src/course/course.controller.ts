@@ -28,6 +28,7 @@ import type { Request } from 'express';
 import { CategorieService } from '../categorie/categorie.service';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { UpdateLessonProgressDto } from './dto/update-lesson-progress.dto';
+import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 
 @ApiTags('Courses')
 @Controller('course')
@@ -60,6 +61,11 @@ export class CourseController {
       throw new Error('Unauthorized');
     }
     return await this.courseService.createCourse(createCourse);
+  }
+
+  @Get('all')
+  async getAllCourses() {
+    return await this.courseService.getAllcourses();
   }
 
   @Patch('update/:slug')
@@ -225,5 +231,44 @@ export class CourseController {
       lessonId,
       completed,
     );
+  }
+
+  @Get(':slug/lessons/progress')
+  @ApiOperation({
+    summary: 'Get all progress lessons for a user in a course',
+    description:
+      'Retrieves all progress lessons for a user in a specific course.',
+  })
+  @ApiParam({
+    name: 'slug',
+    description: 'The unique slug of the course',
+    example: 'introduction-to-react',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of progress lessons for the user in the course.',
+  })
+  @ApiResponse({ status: 401, description: 'User not authenticated.' })
+  @ApiResponse({ status: 404, description: 'Course or user not found.' })
+  async getProgressLessonsForUserInCourse(
+    @Req() req: Request,
+    @Param('slug') slug: string,
+  ) {
+    const user = (req as any).user;
+    if (!user?.id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    return await this.courseService.getProgressLessonsForUserInCourse(
+      user.id,
+      slug,
+    );
+  }
+
+  //get Randown 4 courses
+  @Get('random/:limit')
+  @AllowAnonymous()
+  async getRandomCourses(@Param('limit') limit: number) {
+    return await this.courseService.getRandomCourses(limit);
   }
 }

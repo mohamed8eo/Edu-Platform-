@@ -9,7 +9,7 @@ import type { Request } from 'express';
 import { auth } from '../lib/auth';
 import { db } from '../db';
 import { courses, user, userCourses } from '../db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
@@ -90,4 +90,82 @@ export class UserService {
       message: 'Course added successfully',
     };
   }
+
+  //Add Save course
+  async saveCourse(req: Request, courseId: string) {
+    const userInfo = await this.getUserInfo(req);
+    if (!userInfo?.id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    //  Validate course existence
+    const [courseExists] = await db
+      .select({ id: courses.id })
+      .from(courses)
+      .where(eq(courses.id, courseId));
+
+    if (!courseExists) {
+      throw new NotFoundException('Course does not exist');
+    }
+  }
+
+  //Get Subscirbe course
+  async getSubscribedCourses(req: Request) {
+    const userInfo = await this.getUserInfo(req);
+
+    if (!userInfo?.id)
+      throw new UnauthorizedException('User not authenticated');
+    const subscribedCourses = await db
+      .select()
+      .from(userCourses)
+      .where(eq(userCourses.userId, userInfo.id));
+
+    if (subscribedCourses.length === 0)
+      throw new NotFoundException('No courses found');
+
+    //get course data
+    const coursesData = await db
+      .select()
+      .from(courses)
+      .where(
+        inArray(
+          courses.id,
+          subscribedCourses.map((course) => course.courseId),
+        ),
+      );
+
+    return {
+      success: true,
+      data: coursesData,
+    };
+  }
+
+  async getSubscribedCourse(req: Request, courseId: string) {
+    const userInfo = await this.getUserInfo(req);
+    if (!userInfo?.id)
+      throw new UnauthorizedException('User not authenticated');
+
+    const result = await db
+      .select()
+      .from(userCourses)
+      .where(
+        and(
+          eq(userCourses.userId, userInfo.id),
+          eq(userCourses.courseId, courseId),
+        ),
+      );
+
+    if (result.length === 0)
+      return {
+        success: false,
+        message: 'Course not Subscribed',
+      };
+
+    return {
+      success: true,
+      message: 'Course Subscribed',
+    };
+  }
+
+
 }

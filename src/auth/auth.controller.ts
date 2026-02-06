@@ -1,15 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { SignUpDto } from './dto/SignUp.dto';
 import { SignInDto } from './dto/SignIn.dto';
 import { SendOtpDto, VerifyOtpDto } from './dto/sendOTP.dto';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/password.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SocialLoginDto } from './dto/social-login.dto';
+import { auth } from '../lib/auth';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -82,5 +84,26 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'Password reset successfully.' })
   async resetPassword(@Body() resetPassword: ResetPasswordDto) {
     return this.authService.resetPassword(resetPassword);
+  }
+  @Get('session')
+  @AllowAnonymous()
+  async getSession(@Req() request: Request) {
+    try {
+      // This will return null if no session exists
+      const session = await auth.api.getSession({
+        headers: request.headers as any,
+      });
+
+      if (!session) {
+        return { authenticated: false };
+      }
+
+      return {
+        authenticated: true,
+        user: session.session.token,
+      };
+    } catch (error) {
+      return { authenticated: false };
+    }
   }
 }

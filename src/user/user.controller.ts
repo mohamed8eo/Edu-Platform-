@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { UserService } from './user.service';
 import type { Request } from 'express';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -53,5 +53,18 @@ export class UserController {
     @Body() addCourseDto: AddCourseDto,
   ) {
     return this.userService.addCourseToUser(req, addCourseDto.courseId);
+  }
+
+  @Get('subscibe/all')
+  async getSubscribedCourses(@Req() req: Request) {
+    return this.userService.getSubscribedCourses(req);
+  }
+
+  @Get('subscibe/:courseId')
+  async getSubscribedCourse(
+    @Req() req: Request,
+    @Param('courseId') courseId: string,
+  ) {
+    return this.userService.getSubscribedCourse(req, courseId);
   }
 }

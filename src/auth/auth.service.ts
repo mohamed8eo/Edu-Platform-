@@ -33,7 +33,6 @@ export class AuthService {
           name,
         },
       });
-
       //send OTP
       if (result) {
         await this.sendOTP({ email, type: 'email-verification' });
@@ -142,7 +141,6 @@ export class AuthService {
         },
       });
 
-      console.log('OAuth URL generated:', result.url);
       return result;
     } catch (error) {
       if (error instanceof APIError) {

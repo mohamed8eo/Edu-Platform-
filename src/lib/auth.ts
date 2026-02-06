@@ -2,9 +2,8 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from '../db'; // your drizzle instance
 import * as schema from '../db/schema';
-import { lastLoginMethod } from 'better-auth/plugins';
+import { bearer, lastLoginMethod } from 'better-auth/plugins';
 import { emailOTP } from 'better-auth/plugins';
-import { bearer } from 'better-auth/plugins';
 import { admin } from 'better-auth/plugins';
 import { sendOTPEmail } from './email';
 
@@ -14,8 +13,8 @@ export const auth = betterAuth({
     provider: 'pg', // or "mysql", "sqlite"
   }),
   baseURL: process.env.BETTER_AUTH_URL,
-  trustedOrigins: ['http://localhost:3000'],
   secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins: ['http://localhost:3000'],
   emailAndPassword: {
     enabled: true,
   },
@@ -23,10 +22,10 @@ export const auth = betterAuth({
     skipStateCookieCheck: true,
   },
   plugins: [
-    bearer(),
     lastLoginMethod({
       storeInDatabase: true,
     }),
+    bearer(),
     admin(),
 
     emailOTP({

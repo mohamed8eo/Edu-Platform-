@@ -77,23 +77,47 @@ export class TrafficController {
     if (!IsUseAdmin) {
       throw new UnauthorizedException('Unauthorized');
     }
-    return this.trafficService.getErrorStats();
+    return this.trafficService.getHttpStatusCodes();
   }
 
-  @Get('traffic/active-users')
-  @ApiOperation({ summary: 'Get active users count' })
-  @ApiResponse({
-    status: 200,
-    description: 'Successfully retrieved active users.',
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized access.' })
-  async getActiveUsers(@Req() req: Request) {
-    const IsUseAdmin = await this.categorieService.getUserRole(req);
-    if (!IsUseAdmin) {
-      throw new UnauthorizedException('Unauthorized');
-    }
-    return this.trafficService.getActiveUsers();
-  }
+  // @Get('traffic/average-response-time')
+  // @ApiOperation({ summary: 'Get average response time' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Successfully retrieved average response time.',
+  // })
+  // async getAverageResponseTime(@Req() req: Request) {
+  //   const IsUseAdmin = await this.categorieService.getUserRole(req);
+  //   if (!IsUseAdmin) {
+  //     throw new UnauthorizedException('Unauthorized');
+  //   }
+  //   return await this.trafficService.getAverageResponseTime();
+  // }
+
+  // @Get('traffic/error-rate')
+  // @ApiOperation({ summary: 'Get error rate' })
+  // async getErrorRate(@Req() req: Request) {
+  //   const IsUseAdmin = await this.categorieService.getUserRole(req);
+  //   if (!IsUseAdmin) {
+  //     throw new UnauthorizedException('Unauthorized');
+  //   }
+  //   return await this.trafficService.getErrorRate();
+  // }
+
+  // @Get('traffic/active-users')
+  // @ApiOperation({ summary: 'Get active users count' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Successfully retrieved active users.',
+  // })
+  // @ApiResponse({ status: 401, description: 'Unauthorized access.' })
+  // async getActiveUsers(@Req() req: Request) {
+  //   const IsUseAdmin = await this.categorieService.getUserRole(req);
+  //   if (!IsUseAdmin) {
+  //     throw new UnauthorizedException('Unauthorized');
+  //   }
+  //   return this.trafficService.getActiveUsers();
+  // }
 
   @Get('user/:id')
   @ApiOperation({ summary: 'Get user information by ID' })
@@ -108,6 +132,15 @@ export class TrafficController {
       throw new UnauthorizedException('Unauthorized');
     }
     return this.trafficService.getUserInfo(id);
+  }
+
+  @Get('traffic/dashboard-stats')
+  async getDashboardStats(@Req() req: Request) {
+    const IsUseAdmin = await this.categorieService.getUserRole(req);
+    if (!IsUseAdmin) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+    return this.trafficService.getDashboardStats(req);
   }
 
   @Get('all-users')
